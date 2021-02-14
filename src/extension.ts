@@ -2,26 +2,67 @@
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
 
+let myStatusBarItem: vscode.StatusBarItem;
+
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
-export function activate(context: vscode.ExtensionContext) {
+export function activate({ subscriptions }: vscode.ExtensionContext) {
+	// register a command that is invoked when the status bar
+	// item is selected
+	const myCommandId = 'laziness-alarm.startLazy';
+	subscriptions.push(vscode.commands.registerCommand(myCommandId, () => {
+		vscode.window.showInformationMessage(`작업 시작! Keep going!`);
+		startLazyTimer();
+	}));
 
-	// Use the console to output diagnostic information (console.log) and errors (console.error)
-	// This line of code will only be executed once when your extension is activated
-	console.log('Congratulations, your extension "laziness-alarm" is now active!');
+	// create a new status bar item that we can now manage
+	myStatusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
+	myStatusBarItem.command = myCommandId;
+	subscriptions.push(myStatusBarItem);
 
-	// The command has been defined in the package.json file
-	// Now provide the implementation of the command with registerCommand
-	// The commandId parameter must match the command field in package.json
-	let disposable = vscode.commands.registerCommand('laziness-alarm.helloWorld', () => {
-		// The code you place here will be executed every time your command is executed
-
-		// Display a message box to the user
-		vscode.window.showInformationMessage('Hello World from laziness-alarm!');
-	});
-
-	context.subscriptions.push(disposable);
+	// register some listener that make sure the status bar 
+	// item always up-to-date
+	subscriptions.push(vscode.window.onDidChangeActiveTextEditor(addTime));
+	subscriptions.push(vscode.window.onDidChangeTextEditorSelection(addTime));
 }
+
+let n: number;
+
+function reset() {
+	myStatusBarItem.hide();
+	n = 10;
+}
+
+function statusTime() {
+	myStatusBarItem.text = `Current LeftTime: ${n}`;
+	myStatusBarItem.show();
+}
+
+function startLazyTimer() {
+	reset();
+	reduceTime();
+	vscode.window.showInformationMessage(`Lazy Timer를 시작합니다`);
+};
+
+function reduceTime() {
+	setTimeout(() => {
+		n--;
+		statusTime();
+		if (n === 0) {
+			vscode.window.showInformationMessage(`타이머 종료, 좀더 열심히 하세요`);
+		} else {
+			reduceTime();
+		}
+	}, 1000);
+}
+
+function addTime() {
+	if (n > 0) {
+		n += 1;
+		statusTime();
+	}
+}
+
 
 // this method is called when your extension is deactivated
 export function deactivate() {}
